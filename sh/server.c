@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
 	int serv_sock, clnt_sock, i;
 	struct sockaddr_in serv_adr, clnt_adr;
 
-	char key[4], id[20],pw[20],testpw[3]="pw" ,testid[4]="id", clog[1];
+	char key[4], id[20],pw[20],testpw[10]="hi\0" ,testid[10]="asd\0", clog[1];
 	int clnt_adr_sz;
 	pthread_t t_id;
 
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
 		printf("Usage : %s <port>\n", argv[0]);
 		exit(1);
 	}
-
+  
 	pthread_mutex_init(&mutx, NULL);
 	serv_sock=socket(PF_INET, SOCK_STREAM, 0);
 
@@ -36,23 +36,19 @@ int main(int argc, char *argv[]) {
 	serv_adr.sin_family=AF_INET; 
 	serv_adr.sin_addr.s_addr=htonl(INADDR_ANY);
 	serv_adr.sin_port=htons(atoi(argv[1]));
-
+	
 	if(bind(serv_sock, (struct sockaddr*) &serv_adr, sizeof(serv_adr))==-1)
 		error_handling("bind() error");
 	if(listen(serv_sock, 5)==-1)
 		error_handling("listen() error");
-
+	
 	while(1) {
 		clnt_adr_sz=sizeof(clnt_adr);
 		clnt_sock=accept(serv_sock, (struct sockaddr*)&clnt_adr,&clnt_adr_sz);
 		
 		while(1){
-			id[0]='\0';
-			pw[0]='\0';
 			read(clnt_sock, id, sizeof(id));
-			id[strlen(id)] = '\0';
-			read(clnt_sock, pw, sizeof(pw));
-			pw[strlen(pw)] = '\0';
+			read(clnt_sock, pw,sizeof(pw));
 
 			printf("%s %s\n",id, testid);
 			printf("%s %s\n",pw, testpw);
@@ -74,7 +70,6 @@ int main(int argc, char *argv[]) {
 				break;
 			}
 		}
-
 		if(clnt_cnt >= MAX_CLNT) {
 			printf("CONNECT FAIL : %d \n", clnt_sock);
 			write(clnt_sock, "too many users. sorry", BUF_SIZE);
@@ -87,7 +82,7 @@ int main(int argc, char *argv[]) {
 		clnt_socks[clnt_cnt]=clnt_sock;
 		read(clnt_sock, clnt_name, NAME_SIZE);		
 		strcpy(clnt_names[clnt_cnt++], clnt_name);
-		// „Ñ¥ ÌÅ¥ÎùºÏù¥Ïñ∏Ìä∏Î°úÎ∂ÄÌÑ∞ Î∞õÏùÄ Ï†ëÏÜçÏûê Ïù¥Î¶ÑÏûÖÎ†•
+		// §§ ≈¨∂Û¿Ãæ∆Æ∑Œ∫Œ≈Õ πﬁ¿∫ ¡¢º”¿⁄ ¿Ã∏ß¿‘∑¬
 		pthread_mutex_unlock(&mutx);
 
 		pthread_create(&t_id, NULL, handle_clnt, (void*)&clnt_sock);
@@ -97,28 +92,118 @@ int main(int argc, char *argv[]) {
 	close(serv_sock);
 	return 0;
 }
-
+	
 void * handle_clnt(void * arg) {
 	int clnt_sock=*((int*)arg);
 	int str_len=0, i;
-	int fileReturn = 0;
+	int fSize = 0;
 	const char sig_file[BUF_SIZE] = {"file : cl->sr"};
+	const char Fmsg_end[BUF_SIZE] = {"FileEnd_cl->sr"};
 	const char sig_file_all[BUF_SIZE] = {"file : cl->sr_all"};
 	const char sig_whisper[BUF_SIZE] = {"whisper : cl->sr"};
 	char msg[BUF_SIZE] = {NULL};
+	char file_msg[BUF_SIZE] = {NULL};
 
 	while((str_len=read(clnt_sock, msg, BUF_SIZE))!=0) {
-		if( !strcmp(msg, sig_file) ) {
-			fileReturn = fileSend(0, clnt_sock, clnt_cnt, clnt_names, clnt_socks);
-		}
-		else if ( !strcmp(msg, sig_file_all) ) {
-			fileReturn = fileSend(1, clnt_sock, clnt_cnt, clnt_names, clnt_socks);
-		}
-		if(fileReturn == 1) {
-			continue;
-		}
 
-		if(!strcmp(msg, sig_whisper)) {
+		if(!strcmp(msg, sig_file)) {
+			int j;
+			int noCli = 0;
+			int fileGo = NULL;
+			char tmpName[NAME_SIZE]= {NULL};
+
+			read(clnt_sock, tmpName, NAME_SIZE);
+			
+
+			pthread_mutex_lock(&mutx);
+						
+			for(j=0; j<clnt_cnt; j++) {
+								
+				if(!strcmp(tmpName, clnt_names[j]) ) {
+					noCli = 0;
+					fileGo = j; // ∫∏≥æ º“ƒœ π¯»£∏¶ ¿˙¿Â
+					break;
+				} else if(j == clnt_cnt - 1) {
+					noCli = 1; // ±◊∑± ªÁøÎ¿⁄∞° æ¯¿ª ∂ß «•Ω√
+					break;
+				}
+			}
+
+			if(noCli == 1) {
+
+				write(clnt_sock, "[NoClient_sorry]", BUF_SIZE);
+				pthread_mutex_unlock(&mutx);
+				continue;
+			} else if(noCli == 0) {
+
+				write(clnt_sock, "[continue_ok_nowgo]", BUF_SIZE);
+				
+			}
+			// §§ «ÿ¥Á ªÁøÎ¿⁄∞° ¡∏¿Á«œ¥¬¡ˆ √£±‚
+
+			write(clnt_socks[fileGo], "file : sr->cl", BUF_SIZE);
+			// §§ µ•¿Ã≈Õ∏¶ ∫∏≥Ω¥Ÿ¥¬ Ω≈»£∏¶ ∏’¿˙ ∫∏≥ø
+
+			read(clnt_sock, &fSize, sizeof(int));
+			printf("File size %d Byte\n", fSize);
+			write(clnt_socks[fileGo], &fSize, sizeof(int));
+			// §§ ∆ƒ¿œ ≈©±‚ ¡§∫∏∏¶ ∫∏≥ø.(¡¯«‡¡ﬂ)
+
+			while(1) {
+				read(clnt_sock, file_msg, BUF_SIZE);
+				if(!strcmp(file_msg, Fmsg_end))
+					break;
+				write(clnt_socks[fileGo], file_msg, BUF_SIZE);
+			}
+			
+			write(clnt_socks[fileGo], "FileEnd_sr->cl", BUF_SIZE);
+			
+			pthread_mutex_unlock(&mutx);
+			printf("(!Notice)File data transfered \n");
+
+		} // §§ ∆ƒ¿œ¿¸º€
+		else if(!strcmp(msg, sig_file_all)) {
+			
+			pthread_mutex_lock(&mutx);						
+			
+			for(i=0; i<clnt_cnt; i++) {
+				if(clnt_sock == clnt_socks[i])
+					continue;
+				write(clnt_socks[i], "file : sr->cl", BUF_SIZE);
+			// §§ µ•¿Ã≈Õ∏¶ ∫∏≥Ω¥Ÿ¥¬ Ω≈»£∏¶ ∏’¿˙ ∫∏≥ø
+			}
+
+			read(clnt_sock, &fSize, sizeof(int));
+			printf("File size %d Byte\n", fSize);
+			
+			for(i=0; i<clnt_cnt; i++) {
+				if(clnt_sock == clnt_socks[i])
+					continue;
+				write(clnt_socks[i], &fSize, sizeof(int));
+			}
+			// §§ ∆ƒ¿œ ≈©±‚ ¡§∫∏∏¶ ∫∏≥ø.
+
+			while(1) {
+				read(clnt_sock, file_msg, BUF_SIZE);
+				if(!strcmp(file_msg, Fmsg_end))
+					break;
+
+				for(i=0; i<clnt_cnt; i++) {
+					if(clnt_sock == clnt_socks[i])
+						continue;
+					write(clnt_socks[i], file_msg, BUF_SIZE);
+				}
+			}
+
+			for(i=0; i<clnt_cnt; i++) {
+				if(clnt_sock == clnt_socks[i])
+					continue;
+				write(clnt_socks[i], "FileEnd_sr->cl", BUF_SIZE);
+			}
+						
+			pthread_mutex_unlock(&mutx);
+			printf("(!Notice)File data transfered \n");
+		} else if(!strcmp(msg, sig_whisper)) {
 			int j=0;
 			int noCli = 0;
 			int mGo = 0;
@@ -126,16 +211,16 @@ void * handle_clnt(void * arg) {
 			char msg[NAME_SIZE]= {NULL};
 
 			read(clnt_sock, tmpName, NAME_SIZE);
-
+			
 			pthread_mutex_lock(&mutx);
 			for(j=0; j<clnt_cnt; j++) {
 				if(!strcmp(tmpName, clnt_names[j]) ) {
 					noCli = 0;
-					mGo = j; // Î≥¥ÎÇº ÏÜåÏºì Î≤àÌò∏Î•º Ï†ÄÏû•
+					mGo = j; // ∫∏≥æ º“ƒœ π¯»£∏¶ ¿˙¿Â
 					break;
 				}
 				else if(j == clnt_cnt - 1) {
-					noCli = 1; // Í∑∏Îü∞ ÏÇ¨Ïö©ÏûêÍ∞Ä ÏóÜÏùÑ Îïå ÌëúÏãú
+					noCli = 1; // ±◊∑± ªÁøÎ¿⁄∞° æ¯¿ª ∂ß «•Ω√
 					break;
 				}
 			}
@@ -143,19 +228,19 @@ void * handle_clnt(void * arg) {
 
 			read(clnt_sock, msg, BUF_SIZE);
 
-			if(noCli == 1) { // Í∑ìÏÜçÎßêÌï† ÏÇ¨Ïö©Ïûê ÏóÜÏùÑ Îïå
+			if(noCli == 1) { // ±”º”∏ª«“ ªÁøÎ¿⁄ æ¯¿ª ∂ß
 				write(clnt_sock, "sorry. no client like that", BUF_SIZE);
-			} else { // Í∑ìÏÜçÎßêÌï† ÏÇ¨Ïö©ÏûêÍ∞Ä Ï°¥Ïû¨Ìï† Îïå
+			} else { // ±”º”∏ª«“ ªÁøÎ¿⁄∞° ¡∏¿Á«“ ∂ß
 				write(clnt_socks[j], msg, BUF_SIZE);
 			}
 
 		} else {
 			printf("(!Notice)Chatting message transfered \n");
 			send_msg(msg, str_len);
-		}// „Ñ¥ Î©îÏãúÏßÄ Ï†ÑÏÜ°
+		}// §§ ∏ﬁΩ√¡ˆ ¿¸º€
 	}
 
-
+	
 	pthread_mutex_lock(&mutx);
 	for(i=0; i<clnt_cnt; i++) {   // remove disconnected client
 		if(clnt_sock==clnt_socks[i]) {
