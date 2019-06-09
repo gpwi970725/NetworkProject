@@ -46,10 +46,12 @@ int main(int argc, char *argv[]) {
 	if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))==-1)
 		error_handling("connect() error");
 
+	login(sock);
+
 	write(sock, name, NAME_SIZE);
 	// ¤¤ ÀÌ¸§À» ¼­¹öÂÊÀ¸·Î º¸³¿.
 
-		login();
+		
 	
 
 
@@ -396,22 +398,22 @@ void join(int sock){
 }
 
 void login(int sock){
-	char* id[10],pw[10],clog[1];
+	char* id[20],pw[20],clog[1];
 
 	//id¿ ¿¿¿¿ ¿¿¿ ¿¿
 	while(1){
 	fflush(stdin);
 	printf("input id : ");
 	fgets(id,sizeof(id),stdin);
-	id[strlen(id)-1]='\0';
+	id[strlen(id)]='\0';
 	fflush(stdin);
 
 	printf("input pw : ");
 	fgets(pw,sizeof(pw),stdin);
-	id[strlen(pw)-1]='\0';
+	pw[strlen(pw)]='\0';
 	fflush(stdin);
 	
-	write(sock,pw,strlen(pw));
+	write(sock,id,strlen(id));
 	write(sock,pw,strlen(pw));
 
 	//¿¿¿ ¿¿¿¿ t ¿¿¿ f¿ ¿¿¿ clog[]¿ ¿¿¿ ¿¿ ¿¿
@@ -423,9 +425,10 @@ void login(int sock){
 	}
 	else{
 		printf("login fail...T^T\n");
-		memset(id,0,sizeof(id));
-		memset(pw,0,sizeof(pw));
+		id[0]='\0';
+		pw[0]='\0';
 	}
+
 	}
 
 }

@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
 	int serv_sock, clnt_sock, i;
 	struct sockaddr_in serv_adr, clnt_adr;
 
-	char key[4], id[20],pw[20],testpw[10]="hi\0" ,testid[10]="asd\0", clog[1];
+	char key[4], id[20],pw[20],testpw[3]="hi" ,testid[4]="asd", clog[1];
 	int clnt_adr_sz;
 	pthread_t t_id;
 
@@ -47,8 +47,12 @@ int main(int argc, char *argv[]) {
 		clnt_sock=accept(serv_sock, (struct sockaddr*)&clnt_adr,&clnt_adr_sz);
 		
 		while(1){
+			id[0]='\0';
+			pw[0]='\0';
 			read(clnt_sock, id, sizeof(id));
-			read(clnt_sock, pw,sizeof(pw));
+			id[strlen(id)] = '\0';
+			read(clnt_sock, pw, sizeof(pw));
+			pw[strlen(pw)] = '\0';
 
 			printf("%s %s\n",id, testid);
 			printf("%s %s\n",pw, testpw);
