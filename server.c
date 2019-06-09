@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
 	int serv_sock, clnt_sock, i;
 	struct sockaddr_in serv_adr, clnt_adr;
 
-	char key[4], id[20],pw[20],testpw[3]="hi" ,testid[4]="asd", clog[1];
+	char key[4], id[20],pw[20],testpw[3]="pw" ,testid[4]="id", clog[1];
 	int clnt_adr_sz;
 	pthread_t t_id;
 
