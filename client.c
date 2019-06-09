@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
 	sprintf(name, "%s", argv[3]);
 	sock=socket(PF_INET, SOCK_STREAM, 0);
 
+
 	memset(&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family=AF_INET;
 	serv_addr.sin_addr.s_addr=inet_addr(argv[1]);
@@ -45,8 +46,14 @@ int main(int argc, char *argv[]) {
 	if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))==-1)
 		error_handling("connect() error");
 
+	login(sock);
+
 	write(sock, name, NAME_SIZE);
 	// ¤¤ ÀÌ¸§À» ¼­¹öÂÊÀ¸·Î º¸³¿.
+
+		
+	
+
 
 	printf("\n\n");
 	printf("CONNECTING..... \n [TIP] If you want \"MENU\" -> /menu \n\n");
@@ -359,4 +366,69 @@ void error_handling(char *msg) {
 	fputs(msg, stderr);
 	fputc('\n', stderr);
 	exit(1);
+}
+
+void join(int sock){
+
+	char* id[10],name[10],pw[10],cjoin[1];
+
+	printf("welcome to join us!\n");
+	printf("input id : ");
+	scanf("%s",&id);
+	printf("input your name : ");
+	scanf("%s",&name);
+	printf("input password : ");
+	scanf("%s",&pw);
+
+	id[strlen(id)] = '\0';
+	name[strlen(name)] = '\0';
+	pw[strlen(pw)] = '\0';
+
+	write(sock, id, strlen(id));
+
+	read(sock,cjoin,sizeof(cjoin));
+	if(cjoin[0]=='t'){
+		printf("hi~join success!\n");
+	}else{
+		printf("sorry join fail...T^T\n");
+	}
+	
+
+	
+}
+
+void login(int sock){
+	char* id[20],pw[20],clog[1];
+
+	//id¿ ¿¿¿¿ ¿¿¿ ¿¿
+	while(1){
+	fflush(stdin);
+	printf("input id : ");
+	fgets(id,sizeof(id),stdin);
+	id[strlen(id)]='\0';
+	fflush(stdin);
+
+	printf("input pw : ");
+	fgets(pw,sizeof(pw),stdin);
+	pw[strlen(pw)]='\0';
+	fflush(stdin);
+	
+	write(sock,id,strlen(id));
+	write(sock,pw,strlen(pw));
+
+	//¿¿¿ ¿¿¿¿ t ¿¿¿ f¿ ¿¿¿ clog[]¿ ¿¿¿ ¿¿ ¿¿
+	
+	read(sock,clog,sizeof(clog));
+	if(clog[0] == 't'){
+		printf("hi~login success!\n");
+		break;	
+	}
+	else{
+		printf("login fail...T^T\n");
+		id[0]='\0';
+		pw[0]='\0';
+	}
+
+	}
+
 }

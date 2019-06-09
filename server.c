@@ -19,6 +19,8 @@ pthread_mutex_t mutx;
 int main(int argc, char *argv[]) {
 	int serv_sock, clnt_sock, i;
 	struct sockaddr_in serv_adr, clnt_adr;
+
+	char key[4], id[20],pw[20],testpw[3]="hi" ,testid[4]="asd", clog[1];
 	int clnt_adr_sz;
 	pthread_t t_id;
 
@@ -43,6 +45,35 @@ int main(int argc, char *argv[]) {
 	while(1) {
 		clnt_adr_sz=sizeof(clnt_adr);
 		clnt_sock=accept(serv_sock, (struct sockaddr*)&clnt_adr,&clnt_adr_sz);
+		
+		while(1){
+			id[0]='\0';
+			pw[0]='\0';
+			read(clnt_sock, id, sizeof(id));
+			id[strlen(id)] = '\0';
+			read(clnt_sock, pw, sizeof(pw));
+			pw[strlen(pw)] = '\0';
+
+			printf("%s %s\n",id, testid);
+			printf("%s %s\n",pw, testpw);
+			int ret = strcmp(id , testid);
+			int ret2 = strcmp(pw , testpw);
+
+			if(ret == 0&&ret2 == 0){
+				printf("login success\n");
+				clog[0] = 't';
+				clog[1] = '\0';
+			}else{
+				printf("login fail\n");
+				clog[0] = 'f';
+				clog[1] = '\0';
+			}
+			write(clnt_sock, clog , strlen(clog));	
+			
+			if(clog[0]=='t'){
+				break;
+			}
+		}
 
 		if(clnt_cnt >= MAX_CLNT) {
 			printf("CONNECT FAIL : %d \n", clnt_sock);
@@ -56,7 +87,7 @@ int main(int argc, char *argv[]) {
 		clnt_socks[clnt_cnt]=clnt_sock;
 		read(clnt_sock, clnt_name, NAME_SIZE);		
 		strcpy(clnt_names[clnt_cnt++], clnt_name);
-		// ¤¤ Å¬¶óÀÌ¾ğÆ®·ÎºÎÅÍ ¹ŞÀº Á¢¼ÓÀÚ ÀÌ¸§ÀÔ·Â
+		// ã„´ í´ë¼ì´ì–¸íŠ¸ë¡œë¶€í„° ë°›ì€ ì ‘ì†ì ì´ë¦„ì…ë ¥
 		pthread_mutex_unlock(&mutx);
 
 		pthread_create(&t_id, NULL, handle_clnt, (void*)&clnt_sock);
@@ -100,11 +131,11 @@ void * handle_clnt(void * arg) {
 			for(j=0; j<clnt_cnt; j++) {
 				if(!strcmp(tmpName, clnt_names[j]) ) {
 					noCli = 0;
-					mGo = j; // º¸³¾ ¼ÒÄÏ ¹øÈ£¸¦ ÀúÀå
+					mGo = j; // ë³´ë‚¼ ì†Œì¼“ ë²ˆí˜¸ë¥¼ ì €ì¥
 					break;
 				}
 				else if(j == clnt_cnt - 1) {
-					noCli = 1; // ±×·± »ç¿ëÀÚ°¡ ¾øÀ» ¶§ Ç¥½Ã
+					noCli = 1; // ê·¸ëŸ° ì‚¬ìš©ìê°€ ì—†ì„ ë•Œ í‘œì‹œ
 					break;
 				}
 			}
@@ -112,16 +143,16 @@ void * handle_clnt(void * arg) {
 
 			read(clnt_sock, msg, BUF_SIZE);
 
-			if(noCli == 1) { // ±Ó¼Ó¸»ÇÒ »ç¿ëÀÚ ¾øÀ» ¶§
+			if(noCli == 1) { // ê·“ì†ë§í•  ì‚¬ìš©ì ì—†ì„ ë•Œ
 				write(clnt_sock, "sorry. no client like that", BUF_SIZE);
-			} else { // ±Ó¼Ó¸»ÇÒ »ç¿ëÀÚ°¡ Á¸ÀçÇÒ ¶§
+			} else { // ê·“ì†ë§í•  ì‚¬ìš©ìê°€ ì¡´ì¬í•  ë•Œ
 				write(clnt_socks[j], msg, BUF_SIZE);
 			}
 
 		} else {
 			printf("(!Notice)Chatting message transfered \n");
 			send_msg(msg, str_len);
-		}// ¤¤ ¸Ş½ÃÁö Àü¼Û
+		}// ã„´ ë©”ì‹œì§€ ì „ì†¡
 	}
 
 
@@ -154,3 +185,4 @@ void error_handling(char * msg) {
 	fputc('\n', stderr);
 	exit(1);
 }
+
